@@ -1,0 +1,8 @@
+POST http://localhost:8080/shorten
+Accept: application/json
+Content-Type: application/json
+
+{
+  "fullUrl": "https://google.de",
+  "requestedShortUrl": "ggl"
+}
