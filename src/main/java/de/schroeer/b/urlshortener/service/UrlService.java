@@ -9,10 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class UrlService {
@@ -20,16 +21,14 @@ public class UrlService {
     private final Logger logger = LoggerFactory.getLogger(UrlService.class);
 
     private final UrlRepository urlRepository;
-
+    private final Pattern urlRegex = Pattern.compile("^(http(s)?:\\/\\/)(w{3}\\.)?([a-zA-Z0-9öäüÄÖÜ_\\-\\.\\#\\/\\~\\&]+(\\.[a-zA-Z]{2,6})|localhost)(:[1-9][0-9]{0,4})?(\\/[a-zA-Z0-9_\\-\\.\\#\\/\\~\\&]*)?(\\?[a-zA-Z0-9_=&\\-\\%]*)?$");
+    private final Pattern shortenRegex = Pattern.compile("^[a-zA-Z]+$");
 
     public UrlService(UrlRepository urlRepository) {
         this.urlRepository = urlRepository;
     }
 
     public ShortUrl storeFullUrl(ShortenRequest request) throws URISyntaxException, ShortUrlTakenException {
-        logger.debug("Validating request");
-        new URI(request.fullUrl());
-        new URI(request.requestedShortUrl());
         logger.debug("getting shortUrl");
         String shortUrl = getShortUrl(request.requestedShortUrl());
         logger.debug("shortUrl to be used: '{}'", shortUrl);
@@ -37,6 +36,20 @@ public class UrlService {
         logger.debug("saving entry");
         UrlEntity saved = this.urlRepository.save(urlEntity);
         return new ShortUrl(saved.getShortUrl());
+    }
+
+    public void validateUrl(String urlAsString) throws URISyntaxException {
+        Matcher matcher = urlRegex.matcher(urlAsString);
+        if(!matcher.find()){
+            throw new URISyntaxException(urlAsString, "Syntax of given URI is invalid");
+        }
+    }
+
+    public void validateShortenText(String string) throws URISyntaxException {
+        Matcher matcher = shortenRegex.matcher(string);
+        if(!matcher.find()){
+            throw new URISyntaxException(string, "Syntax of given shorted URI is invalid");
+        }
     }
 
     private String getShortUrl(String requestedShortUrl) throws ShortUrlTakenException {
